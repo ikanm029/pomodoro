@@ -54,20 +54,14 @@
       transform: scale(0.97);
     }
 
-    /* Make number inputs better on dark theme, style spinners visible and large */
+    /* Hide native spinners (we provide custom +/- buttons that always work and are styled) */
     input[type="number"] {
       color: #f4f4f5; /* zinc-100 */
     }
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: inner-spin-button;
-      background: #27272a; /* dark */
-      color: #ffffff; /* white for visibility */
-      border: 1px solid #3f3f46;
-      border-radius: 4px;
-      width: 22px;
-      height: 22px;
-      margin-left: 4px;
+      -webkit-appearance: none;
+      margin: 0;
     }
     .phase-min-label {
       font-size: 0.875rem; /* text-sm */
@@ -352,11 +346,34 @@
         durIn.type = 'number';
         durIn.value = dur;
         durIn.min = '1';
-        durIn.className = 'w-24 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
+        durIn.className = 'w-28 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
         durIn.onchange = () => {
           phases[i].duration = Math.max(1, parseInt(durIn.value) || 1);
         };
         row.appendChild(durIn);
+
+        // Custom +/- spinner buttons (visible, always work on phone, white & larger)
+        const spinWrap = document.createElement('div');
+        spinWrap.className = 'flex flex-col ml-1';
+
+        const makeSpinBtn = (label, delta) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = label;
+          btn.className = 'text-white text-xl leading-none px-1 py-0 bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 rounded border border-zinc-600';
+          btn.onclick = (e) => {
+            e.preventDefault();
+            let v = parseInt(durIn.value) || 1;
+            v = Math.max(1, v + delta);
+            durIn.value = v;
+            phases[i].duration = v;
+          };
+          return btn;
+        };
+
+        spinWrap.appendChild(makeSpinBtn('▲', 1));
+        spinWrap.appendChild(makeSpinBtn('▼', -1));
+        row.appendChild(spinWrap);
 
         const minL = document.createElement('span');
         minL.textContent = '分';
@@ -366,22 +383,34 @@
         const typeWrap = document.createElement('div');
         typeWrap.className = 'flex gap-1 ml-auto';
 
-        const mkBtn = (txt, val) => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.textContent = txt;
-          const active = (val === isW);
-          b.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${active ? (val ? 'bg-red-600 text-white border-red-500' : 'bg-emerald-600 text-white border-emerald-500') : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
-          b.onclick = () => {
-            phases[i].isWork = val;
-            typeWrap.innerHTML = '';
-            typeWrap.appendChild(mkBtn('作業', true));
-            typeWrap.appendChild(mkBtn('休憩', false));
-          };
-          return b;
+        // Create buttons once, update styles on click without full re-render
+        const workBtn = document.createElement('button');
+        workBtn.type = 'button';
+        workBtn.textContent = '作業';
+        workBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${isW ? 'bg-red-600 text-white border-red-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+
+        const breakBtn = document.createElement('button');
+        breakBtn.type = 'button';
+        breakBtn.textContent = '休憩';
+        breakBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${!isW ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+
+        const updateTypeStyles = () => {
+          const cur = phases[i].isWork;
+          workBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${cur ? 'bg-red-600 text-white border-red-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+          breakBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${!cur ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
         };
-        typeWrap.appendChild(mkBtn('作業', true));
-        typeWrap.appendChild(mkBtn('休憩', false));
+
+        workBtn.onclick = () => {
+          phases[i].isWork = true;
+          updateTypeStyles();
+        };
+        breakBtn.onclick = () => {
+          phases[i].isWork = false;
+          updateTypeStyles();
+        };
+
+        typeWrap.appendChild(workBtn);
+        typeWrap.appendChild(breakBtn);
         row.appendChild(typeWrap);
 
         container.appendChild(row);
@@ -468,11 +497,34 @@
         durIn.type = 'number';
         durIn.value = p.duration;
         durIn.min = '1';
-        durIn.className = 'w-24 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
+        durIn.className = 'w-28 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
         durIn.onchange = () => {
           phases[i].duration = Math.max(1, parseInt(durIn.value) || 1);
         };
         row.appendChild(durIn);
+
+        // Custom +/- spinner buttons (visible, always work on phone, white & larger)
+        const spinWrap = document.createElement('div');
+        spinWrap.className = 'flex flex-col ml-1';
+
+        const makeSpinBtn = (label, delta) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = label;
+          btn.className = 'text-white text-xl leading-none px-1 py-0 bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 rounded border border-zinc-600';
+          btn.onclick = (e) => {
+            e.preventDefault();
+            let v = parseInt(durIn.value) || 1;
+            v = Math.max(1, v + delta);
+            durIn.value = v;
+            phases[i].duration = v;
+          };
+          return btn;
+        };
+
+        spinWrap.appendChild(makeSpinBtn('▲', 1));
+        spinWrap.appendChild(makeSpinBtn('▼', -1));
+        row.appendChild(spinWrap);
 
         const minL = document.createElement('span');
         minL.textContent = '分';
@@ -482,22 +534,34 @@
         const typeWrap = document.createElement('div');
         typeWrap.className = 'flex gap-1 ml-auto';
 
-        const mkBtn = (txt, val) => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.textContent = txt;
-          const active = (val === p.isWork);
-          b.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${active ? (val ? 'bg-red-600 text-white border-red-500' : 'bg-emerald-600 text-white border-emerald-500') : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
-          b.onclick = () => {
-            phases[i].isWork = val;
-            typeWrap.innerHTML = '';
-            typeWrap.appendChild(mkBtn('作業', true));
-            typeWrap.appendChild(mkBtn('休憩', false));
-          };
-          return b;
+        // Create buttons once, update styles on click without full re-render
+        const workBtn = document.createElement('button');
+        workBtn.type = 'button';
+        workBtn.textContent = '作業';
+        workBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${p.isWork ? 'bg-red-600 text-white border-red-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+
+        const breakBtn = document.createElement('button');
+        breakBtn.type = 'button';
+        breakBtn.textContent = '休憩';
+        breakBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${!p.isWork ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+
+        const updateTypeStyles = () => {
+          const cur = phases[i].isWork;
+          workBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${cur ? 'bg-red-600 text-white border-red-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+          breakBtn.className = `text-sm px-3 py-1.5 rounded-2xl border font-medium ${!cur ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
         };
-        typeWrap.appendChild(mkBtn('作業', true));
-        typeWrap.appendChild(mkBtn('休憩', false));
+
+        workBtn.onclick = () => {
+          phases[i].isWork = true;
+          updateTypeStyles();
+        };
+        breakBtn.onclick = () => {
+          phases[i].isWork = false;
+          updateTypeStyles();
+        };
+
+        typeWrap.appendChild(workBtn);
+        typeWrap.appendChild(breakBtn);
         row.appendChild(typeWrap);
 
         container.appendChild(row);
