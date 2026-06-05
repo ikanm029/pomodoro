@@ -1,0 +1,22 @@
+{
+  "name": "カスタムタイマー",
+  "short_name": "カスタムタイマー",
+  "description": "作業時間と休憩時間を自由に設定して繰り返せるタイマー",
+  "start_url": "pomodoro-pwa.html",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/18181b/ffffff?text=T",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/18181b/ffffff?text=T",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

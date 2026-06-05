@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>カスタムタイマー</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="自分好みの作業時間と休憩時間を繰り返せるタイマー">
+  <meta name="theme-color" content="#18181b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="カスタムタイマー">
+  
+  <link rel="manifest" href="manifest.json">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    .timer-font {
+      font-family: 'Space Grotesk', 'Inter', system_ui, sans-serif;
+      font-feature-settings: "tnum";
+    }
+    .phase-work {
+      color: #f43f5e;
+    }
+    .phase-break {
+      color: #10b981;
+    }
+    
+    /* Mobile friendly adjustments */
+    @media (max-width: 640px) {
+      #timer-display {
+        font-size: 72px !important;
+        line-height: 1 !important;
+      }
+      .control-btn {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        font-size: 1rem;
+      }
+    }
+    
+    .big-button {
+      transition: all 0.1s ease;
+    }
+    .big-button:active {
+      transform: scale(0.97);
+    }
+
+    /* Make number inputs better on dark theme, hide tricky spinners */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      color: #f4f4f5; /* zinc-100 */
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+      background: #3f3f46; /* zinc-700 */
+      color: #e4e4e7;
+      border-radius: 3px;
+      width: 14px;
+      height: 14px;
+    }
+    .phase-min-label {
+      font-size: 0.875rem; /* text-sm */
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+  <div class="max-w-md mx-auto min-h-screen flex flex-col">
+    
+    <!-- Header -->
+    <div class="px-5 pt-6 pb-3">
+      <h1 class="text-2xl font-semibold tracking-tight">カスタムタイマー</h1>
+      <p class="text-zinc-500 text-sm">好きなパターンで繰り返せる</p>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="px-5 flex-1">
+      <div class="space-y-5">
+        
+        <!-- 1回のポモドーロのブロック数 (ドロップダウン) -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-1.5">1回のポモドーロの長さ（ブロック数）</label>
+          <select id="block-count" class="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-3xl px-6 py-4 text-4xl font-semibold outline-none text-center">
+            <option value="1">1ブロック</option>
+            <option value="2" selected>2ブロック</option>
+            <option value="3">3ブロック</option>
+            <option value="4">4ブロック</option>
+            <option value="5">5ブロック</option>
+            <option value="6">6ブロック</option>
+          </select>
+          <p class="text-xs text-zinc-500 mt-2 px-1">ブロック数を選ぶと下にその分の時間と作業/休憩を設定できるよ。</p>
+        </div>
+
+        <!-- フェーズ一覧 (動的生成) -->
+        <div id="phases-list" class="space-y-3">
+          <!-- JSでここにN個のブロックを生成 -->
+        </div>
+
+        <!-- 全体の繰り返し回数 (M) -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-1.5">このポモドーロを何回繰り返すか</label>
+          <select id="outer-repeat" class="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-3xl px-6 py-4 text-4xl font-semibold outline-none text-center">
+            <option value="1">1回</option>
+            <option value="2">2回</option>
+            <option value="3">3回</option>
+            <option value="4" selected>4回</option>
+            <option value="5">5回</option>
+            <option value="6">6回</option>
+            <option value="8">8回</option>
+            <option value="10">10回</option>
+          </select>
+          <p class="text-xs text-zinc-500 mt-2 px-1">上で作った1セットのポモドーロを、全体で何回ループするか。</p>
+        </div>
+
+        <!-- Sound -->
+        <div class="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-3xl px-5 py-4">
+          <div>
+            <div class="font-medium">終了時に音を鳴らす</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="enable-sound" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        <!-- 保存 / 読み込み -->
+        <div>
+          <div class="flex gap-2 mb-2">
+            <button onclick="saveCurrentTimer()" 
+                    class="flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-sm font-medium py-2.5 rounded-3xl">この設定を保存</button>
+            <button onclick="showSavedTimers()" 
+                    class="flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-sm font-medium py-2.5 rounded-3xl">保存済みを読み込む</button>
+          </div>
+          <div id="saved-hint" class="text-[10px] text-zinc-500 text-center">localStorageに保存（このブラウザのみ）</div>
+        </div>
+
+      </div>
+
+      <!-- Start Button -->
+      <button onclick="startTimer()"
+              class="mt-8 w-full bg-white hover:bg-zinc-100 active:bg-zinc-200 transition-all text-black font-semibold py-4 rounded-3xl text-lg big-button">
+        スタート
+      </button>
+
+      <p class="text-center text-[10px] text-zinc-600 mt-4">このタイマーは完全にオフラインで動作します<br>（バックグラウンド時はブラウザ制限で音が鳴らない場合あり。フォアグラウンド推奨）</p>
+
+    </div>
+
+    <!-- Timer Screen -->
+    <div id="timer-screen" class="px-5 flex-1 hidden flex-col pt-2">
+      
+      <!-- Top bar -->
+      <div class="flex justify-between items-center mb-4">
+        <div id="cycle-progress" class="text-sm font-medium text-zinc-400"></div>
+        <button onclick="resetTimer()" 
+                class="text-xs px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 text-zinc-400">
+          リセット
+        </button>
+      </div>
+
+      <!-- Phase -->
+      <div id="phase-label" 
+           class="text-center text-2xl font-semibold tracking-tight mb-1 phase-work">
+        作業中
+      </div>
+
+      <!-- Big Timer -->
+      <div id="timer-display" 
+           class="text-center text-[88px] sm:text-[96px] leading-none font-semibold tracking-[-5px] timer-font tabular-nums my-6 text-white">
+        20:00
+      </div>
+
+      <!-- Controls -->
+      <div class="grid grid-cols-2 gap-3 mt-auto mb-6">
+        <button id="pause-btn"
+                onclick="togglePause()"
+                class="control-btn flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 transition-colors font-semibold py-4 rounded-3xl text-base">
+          一時停止
+        </button>
+        
+        <button onclick="skipPhase()"
+                class="control-btn flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 transition-colors font-semibold py-4 rounded-3xl text-base">
+          スキップ
+        </button>
+      </div>
+
+      <div id="status-text" 
+           class="text-center text-sm text-zinc-500 pb-4">
+        次の休憩まで
+      </div>
+
+    </div>
+
+    <!-- Completion Screen -->
+    <div id="complete-screen" class="px-5 flex-1 hidden flex-col items-center justify-center text-center">
+      <div class="text-6xl mb-4">🎉</div>
+      <div class="text-3xl font-semibold tracking-tight mb-1">お疲れ様でした！</div>
+      <div class="text-zinc-400 mb-8">すべてのサイクルが完了しました</div>
+      
+      <button onclick="resetTimer()"
+              class="w-full max-w-xs bg-white hover:bg-zinc-100 active:bg-zinc-200 transition-colors text-black font-semibold py-4 rounded-3xl text-lg">
+        もう一度やる
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    let timerInterval = null;
+    let isPaused = false;
+    let currentTime = 0;
+    let isWorkPhase = true;
+    let currentCycle = 1;
+    let totalCycles = 4;
+    let workMinutes = 20;
+    let breakMinutes = 40;
+    let soundEnabled = true;
+
+    let phases = [];  // [{duration, isWork}, ...]  for one pomodoro
+    let blockPhases = [];
+    let outerRepeat = 1;
+    let currentPhaseIndex = 0;
+    let totalPhases = 0;
+
+    let audioContext = null;
+
+    function initAudio() {
+      if (!audioContext) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {}
+      }
+    }
+
+    function playAlarm() {
+      if (!soundEnabled || !audioContext) return;
+
+      // Try to resume context (helps when tab was hidden/background)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume().catch(() => {});
+      }
+
+      try {
+        const now = audioContext.currentTime;
+
+        // First beep
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.value = 880;
+        gain1.gain.value = 0.7;
+        osc1.connect(gain1);
+        gain1.connect(audioContext.destination);
+        osc1.start(now);
+        gain1.gain.linearRampToValueAtTime(0.001, now + 1.1);
+        setTimeout(() => osc1.stop(), 1200);
+
+        // Second higher beep
+        setTimeout(() => {
+          if (!audioContext) return;
+          const osc2 = audioContext.createOscillator();
+          const gain2 = audioContext.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.value = 1100;
+          gain2.gain.value = 0.55;
+          osc2.connect(gain2);
+          gain2.connect(audioContext.destination);
+          const now2 = audioContext.currentTime;
+          osc2.start(now2);
+          gain2.gain.linearRampToValueAtTime(0.001, now2 + 0.7);
+          setTimeout(() => osc2.stop(), 800);
+        }, 260);
+
+      } catch (e) {}
+    }
+
+    function updateDisplay(minutes, seconds) {
+      const display = document.getElementById('timer-display');
+      display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updatePhaseUI() {
+      const phaseLabel = document.getElementById('phase-label');
+      const statusText = document.getElementById('status-text');
+
+      if (isWorkPhase) {
+        phaseLabel.textContent = '作業中';
+        phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-1 phase-work';
+        statusText.textContent = '次の作業まで';
+      } else {
+        phaseLabel.textContent = '休憩中';
+        phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-1 phase-break';
+        statusText.textContent = '次の休憩まで';
+      }
+    }
+
+    function updateCycleProgress() {
+      const progress = document.getElementById('cycle-progress');
+      if (!blockPhases || blockPhases.length === 0) {
+        progress.textContent = `1 / 1 回目`;
+        return;
+      }
+      const pomodoroNum = Math.floor(currentPhaseIndex / blockPhases.length) + 1;
+      const totalPomodoro = outerRepeat;
+      const blockNum = (currentPhaseIndex % blockPhases.length) + 1;
+      const totalBlock = blockPhases.length;
+      progress.textContent = `ポモ ${pomodoroNum}/${totalPomodoro} (ブロック ${blockNum}/${totalBlock})`;
+    }
+
+    function renderPhases() {
+      const select = document.getElementById('block-count');
+      let n = parseInt(select.value) || 2;
+      if (n < 1) n = 1;
+
+      const container = document.getElementById('phases-list');
+      const oldPhases = phases || [];
+      phases = [];
+      container.innerHTML = '';
+
+      for (let i = 0; i < n; i++) {
+        let dur = 30;
+        let isW = (i % 2 === 0);
+        if (i < oldPhases.length) {
+          dur = oldPhases[i].duration || 30;
+          isW = !!oldPhases[i].isWork;
+        } else {
+          dur = (i === 0 ? 40 : 20);
+          isW = (i % 2 === 0);
+        }
+        phases.push({ duration: dur, isWork: isW });
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-3xl px-4 py-3';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'text-xs text-zinc-400 w-12 shrink-0';
+        lbl.textContent = `${i + 1}回目`;
+        row.appendChild(lbl);
+
+        const durIn = document.createElement('input');
+        durIn.type = 'number';
+        durIn.value = dur;
+        durIn.min = '1';
+        durIn.className = 'w-24 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
+        durIn.onchange = () => {
+          phases[i].duration = Math.max(1, parseInt(durIn.value) || 1);
+        };
+        row.appendChild(durIn);
+
+        const minL = document.createElement('span');
+        minL.textContent = '分';
+        minL.className = 'phase-min-label text-zinc-400 mr-2 text-xl';
+        row.appendChild(minL);
+
+        const typeWrap = document.createElement('div');
+        typeWrap.className = 'flex gap-1 ml-auto';
+
+        const mkBtn = (txt, val) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = txt;
+          const active = (val === isW);
+          b.className = `text-xs px-2.5 py-1 rounded-2xl border ${active ? (val ? 'bg-red-600 text-white border-red-500' : 'bg-emerald-600 text-white border-emerald-500') : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+          b.onclick = () => {
+            phases[i].isWork = val;
+            typeWrap.innerHTML = '';
+            typeWrap.appendChild(mkBtn('作業', true));
+            typeWrap.appendChild(mkBtn('休憩', false));
+          };
+          return b;
+        };
+        typeWrap.appendChild(mkBtn('作業', true));
+        typeWrap.appendChild(mkBtn('休憩', false));
+        row.appendChild(typeWrap);
+
+        container.appendChild(row);
+      }
+    }
+
+    // ===== 保存 / 読み込み 機能 =====
+    function saveCurrentTimer() {
+      const name = prompt('このポモドーロの名前を付けて保存（例: 深い集中3ブロック）', 'カスタム ' + new Date().toLocaleTimeString());
+      if (!name) return;
+
+      const config = {
+        name: name,
+        phases: JSON.parse(JSON.stringify(phases)),
+        repeatCount: parseInt(document.getElementById('outer-repeat').value) || 1,
+        blockCount: phases.length,
+        savedAt: new Date().toISOString()
+      };
+
+      let saved = JSON.parse(localStorage.getItem('pomodoroSavedTimers') || '[]');
+      saved = saved.filter(s => s.name !== name); // 同名上書き
+      saved.unshift(config);
+      if (saved.length > 20) saved = saved.slice(0, 20);
+      localStorage.setItem('pomodoroSavedTimers', JSON.stringify(saved));
+      alert('保存したよ！ 「保存済みを読み込む」から選べる。');
+    }
+
+    function showSavedTimers() {
+      const saved = JSON.parse(localStorage.getItem('pomodoroSavedTimers') || '[]');
+      if (saved.length === 0) {
+        alert('まだ保存されたタイマーがないよ。設定を作って「この設定を保存」してね。');
+        return;
+      }
+
+      let msg = '読み込むタイマーを選んで（番号入力）:\n';
+      saved.forEach((s, i) => {
+        msg += `${i+1}. ${s.name} (ブロック${s.blockCount} / 全体${s.repeatCount}回) - ${new Date(s.savedAt).toLocaleDateString()}\n`;
+      });
+      const choice = prompt(msg + '\n番号を入力してEnter（キャンセルで閉じる）');
+      if (!choice) return;
+      const idx = parseInt(choice) - 1;
+      if (idx < 0 || idx >= saved.length) {
+        alert('番号が変だよ');
+        return;
+      }
+      loadTimerConfig(saved[idx]);
+    }
+
+    function loadTimerConfig(config) {
+      // set block count
+      const select = document.getElementById('block-count');
+      select.value = config.blockCount || config.phases.length;
+      // load phases
+      phases = JSON.parse(JSON.stringify(config.phases));
+      // rebuild UI from phases (does not reset the array)
+      rebuildPhasesUIFromPhases();
+
+      // set outer
+      const outer = document.getElementById('outer-repeat');
+      if (outer) outer.value = config.repeatCount || 1;
+
+      alert(`「${config.name}」を読み込んだよ！`);
+    }
+
+    function rebuildPhasesUIFromPhases() {
+      const container = document.getElementById('phases-list');
+      if (!container) return;
+      container.innerHTML = '';
+      const n = phases.length;
+      const select = document.getElementById('block-count');
+      if (select) select.value = n;
+
+      for (let i = 0; i < n; i++) {
+        const p = phases[i];
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-3xl px-4 py-3';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'text-xs text-zinc-400 w-12 shrink-0';
+        lbl.textContent = `${i + 1}回目`;
+        row.appendChild(lbl);
+
+        const durIn = document.createElement('input');
+        durIn.type = 'number';
+        durIn.value = p.duration;
+        durIn.min = '1';
+        durIn.className = 'w-24 bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-2 text-4xl font-semibold text-center outline-none';
+        durIn.onchange = () => {
+          phases[i].duration = Math.max(1, parseInt(durIn.value) || 1);
+        };
+        row.appendChild(durIn);
+
+        const minL = document.createElement('span');
+        minL.textContent = '分';
+        minL.className = 'phase-min-label text-zinc-400 mr-2 text-xl';
+        row.appendChild(minL);
+
+        const typeWrap = document.createElement('div');
+        typeWrap.className = 'flex gap-1 ml-auto';
+
+        const mkBtn = (txt, val) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = txt;
+          const active = (val === p.isWork);
+          b.className = `text-xs px-2.5 py-1 rounded-2xl border ${active ? (val ? 'bg-red-600 text-white border-red-500' : 'bg-emerald-600 text-white border-emerald-500') : 'bg-zinc-800 text-zinc-300 border-zinc-700'}`;
+          b.onclick = () => {
+            phases[i].isWork = val;
+            typeWrap.innerHTML = '';
+            typeWrap.appendChild(mkBtn('作業', true));
+            typeWrap.appendChild(mkBtn('休憩', false));
+          };
+          return b;
+        };
+        typeWrap.appendChild(mkBtn('作業', true));
+        typeWrap.appendChild(mkBtn('休憩', false));
+        row.appendChild(typeWrap);
+
+        container.appendChild(row);
+      }
+    }
+
+    function startTimer() {
+      soundEnabled = document.getElementById('enable-sound').checked;
+
+      if (!phases || phases.length === 0) {
+        renderPhases();
+      }
+
+      initAudio();
+
+      const outerM = parseInt(document.getElementById('outer-repeat').value) || 1;
+      blockPhases = phases;  // the N blocks for one pomodoro
+      outerRepeat = outerM;
+      currentPhaseIndex = 0;
+      totalPhases = blockPhases.length * outerM;
+
+      // Keep audio context alive even if tab is in background (helps desktop + some mobile cases)
+      if (audioContext) {
+        try {
+          if (audioContext.state === 'suspended') audioContext.resume();
+          if (!window._pomoKeepAliveOsc) {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            gain.gain.value = 0.00001; // completely inaudible
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start();
+            window._pomoKeepAliveOsc = osc;
+          }
+        } catch(e) {}
+      }
+
+      const first = blockPhases[0];
+      isWorkPhase = first.isWork;
+      currentTime = first.duration * 60;
+
+      document.getElementById('settings-screen').classList.add('hidden');
+      document.getElementById('timer-screen').classList.remove('hidden');
+      document.getElementById('complete-screen').classList.add('hidden');
+
+      updatePhaseUI();
+      updateCycleProgress();
+      updateDisplay(Math.floor(currentTime / 60), currentTime % 60);
+
+      startCountdown();
+    }
+
+    function startCountdown() {
+      clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        if (isPaused) return;
+
+        currentTime--;
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = currentTime % 60;
+
+        updateDisplay(minutes, seconds);
+
+        if (currentTime <= 0) {
+          clearInterval(timerInterval);
+          handlePhaseComplete();
+        }
+      }, 1000);
+    }
+
+    function handlePhaseComplete() {
+      playAlarm();
+
+      currentPhaseIndex++;
+      if (currentPhaseIndex < totalPhases) {
+        const idx = currentPhaseIndex % blockPhases.length;
+        const p = blockPhases[idx];
+        isWorkPhase = p.isWork;
+        currentTime = p.duration * 60;
+      } else {
+        showCompletion();
+        return;
+      }
+
+      updatePhaseUI();
+      updateCycleProgress();
+      updateDisplay(Math.floor(currentTime / 60), currentTime % 60);
+      startCountdown();
+    }
+
+    function togglePause() {
+      const btn = document.getElementById('pause-btn');
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        btn.textContent = '再開';
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.remove('bg-zinc-800', 'hover:bg-zinc-700');
+      } else {
+        btn.textContent = '一時停止';
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-zinc-800', 'hover:bg-zinc-700');
+        startCountdown();
+      }
+    }
+
+    function skipPhase() {
+      clearInterval(timerInterval);
+      handlePhaseComplete();
+    }
+
+    function showCompletion() {
+      document.getElementById('timer-screen').classList.add('hidden');
+      document.getElementById('complete-screen').classList.remove('hidden');
+
+      if (soundEnabled) {
+        setTimeout(() => playAlarm(), 120);
+        setTimeout(() => playAlarm(), 950);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isPaused = false;
+
+      // stop keep-alive osc if present
+      if (window._pomoKeepAliveOsc) {
+        try { window._pomoKeepAliveOsc.stop(); } catch(e) {}
+        window._pomoKeepAliveOsc = null;
+      }
+
+      document.getElementById('timer-screen').classList.add('hidden');
+      document.getElementById('complete-screen').classList.add('hidden');
+      document.getElementById('settings-screen').classList.remove('hidden');
+    }
+
+    // Keyboard shortcuts (mainly for desktop)
+    document.addEventListener('keydown', function(e) {
+      const timerScreen = document.getElementById('timer-screen');
+      if (timerScreen.classList.contains('hidden')) return;
+
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        togglePause();
+      }
+      if (e.key.toLowerCase() === 's') {
+        skipPhase();
+      }
+      if (e.key.toLowerCase() === 'r') {
+        resetTimer();
+      }
+    });
+
+    // Initialize
+    function init() {
+      const select = document.getElementById('block-count');
+      select.onchange = renderPhases;
+      // default 2
+      select.value = '2';
+      renderPhases();
+
+      // default outer repeat
+      const outer = document.getElementById('outer-repeat');
+      if (outer) outer.value = 4;
+
+      // Enter key to start from settings
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          const settings = document.getElementById('settings-screen');
+          if (!settings.classList.contains('hidden')) {
+            startTimer();
+          }
+        }
+      });
+
+      // Try to keep audio alive / resume when tab becomes visible again (for background sound)
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && audioContext && audioContext.state === 'suspended') {
+          audioContext.resume().catch(() => {});
+        }
+      });
+
+      console.log('%c[PWA版] カスタムタイマー 初期化完了', 'color:#666');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
