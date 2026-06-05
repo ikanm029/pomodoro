@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カスタムタイマー（シンプル版）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    .timer-font {
+      font-family: 'Space Grotesk', 'Inter', system_ui, sans-serif;
+      font-feature-settings: "tnum";
+    }
+    .phase-work {
+      color: #f43f5e;
+    }
+    .phase-break {
+      color: #10b981;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+  <div class="max-w-md mx-auto min-h-screen flex flex-col">
+    
+    <!-- Header -->
+    <div class="px-5 pt-6 pb-3">
+      <h1 class="text-2xl font-semibold tracking-tight">カスタムタイマー</h1>
+      <p class="text-zinc-500 text-sm">シンプルに作業と休憩を繰り返す</p>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="px-5 flex-1">
+      <div class="space-y-5">
+        
+        <!-- Work Time -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-1.5">作業時間</label>
+          <div class="flex items-center gap-3">
+            <input type="number" id="work-minutes" value="25" 
+                   class="flex-1 bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-3xl px-6 py-4 text-4xl font-semibold outline-none text-center">
+            <span class="text-zinc-400 text-xl w-8">分</span>
+          </div>
+        </div>
+
+        <!-- Break Time -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-1.5">休憩時間</label>
+          <div class="flex items-center gap-3">
+            <input type="number" id="break-minutes" value="5" 
+                   class="flex-1 bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-3xl px-6 py-4 text-4xl font-semibold outline-none text-center">
+            <span class="text-zinc-400 text-xl w-8">分</span>
+          </div>
+        </div>
+
+        <!-- Number of Cycles -->
+        <div>
+          <label class="block text-sm font-medium text-zinc-400 mb-1.5">繰り返し回数</label>
+          <div class="flex items-center gap-3">
+            <input type="number" id="cycles" value="4" min="1" 
+                   class="flex-1 bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-3xl px-6 py-4 text-4xl font-semibold outline-none text-center">
+            <span class="text-zinc-400 text-xl w-8">回</span>
+          </div>
+          <p class="text-xs text-zinc-500 mt-2 px-1">
+            例：25分作業 → 5分休憩 を4回繰り返す
+          </p>
+        </div>
+
+        <!-- Sound -->
+        <div class="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-3xl px-5 py-4">
+          <div>
+            <div class="font-medium">終了時に音を鳴らす</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="enable-sound" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- Start Button -->
+      <button onclick="startTimer()"
+              class="mt-8 w-full bg-white hover:bg-zinc-100 active:bg-zinc-200 transition-all text-black font-semibold py-4 rounded-3xl text-lg big-button">
+        スタート
+      </button>
+
+      <p class="text-center text-[10px] text-zinc-600 mt-4">このタイマーは完全にオフラインで動作します</p>
+
+    </div>
+
+    <!-- Timer Screen -->
+    <div id="timer-screen" class="px-5 flex-1 hidden flex-col pt-2">
+      
+      <!-- Top bar -->
+      <div class="flex justify-between items-center mb-4">
+        <div id="cycle-progress" class="text-sm font-medium text-zinc-400"></div>
+        <button onclick="resetTimer()" 
+                class="text-xs px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 text-zinc-400">
+          リセット
+        </button>
+      </div>
+
+      <!-- Phase -->
+      <div id="phase-label" 
+           class="text-center text-2xl font-semibold tracking-tight mb-1 phase-work">
+        作業中
+      </div>
+
+      <!-- Big Timer -->
+      <div id="timer-display" 
+           class="text-center text-[88px] sm:text-[96px] leading-none font-semibold tracking-[-5px] timer-font tabular-nums my-6 text-white">
+        25:00
+      </div>
+
+      <!-- Controls -->
+      <div class="grid grid-cols-2 gap-3 mt-auto mb-6">
+        <button id="pause-btn"
+                onclick="togglePause()"
+                class="control-btn flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 transition-colors font-semibold py-4 rounded-3xl text-base">
+          一時停止
+        </button>
+        
+        <button onclick="skipPhase()"
+                class="control-btn flex-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 transition-colors font-semibold py-4 rounded-3xl text-base">
+          スキップ
+        </button>
+      </div>
+
+      <div id="status-text" 
+           class="text-center text-sm text-zinc-500 pb-4">
+        次の休憩まで
+      </div>
+
+    </div>
+
+    <!-- Completion Screen -->
+    <div id="complete-screen" class="px-5 flex-1 hidden flex-col items-center justify-center text-center">
+      <div class="text-6xl mb-4">🎉</div>
+      <div class="text-3xl font-semibold tracking-tight mb-1">お疲れ様でした！</div>
+      <div class="text-zinc-400 mb-8">すべてのサイクルが完了しました</div>
+      
+      <button onclick="resetTimer()"
+              class="w-full max-w-xs bg-white hover:bg-zinc-100 active:bg-zinc-200 transition-colors text-black font-semibold py-4 rounded-3xl text-lg">
+        もう一度やる
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    let timerInterval = null;
+    let isPaused = false;
+    let currentTime = 0;
+    let isWorkPhase = true;
+    let currentCycle = 1;
+    let totalCycles = 4;
+    let workMinutes = 25;
+    let breakMinutes = 5;
+    let soundEnabled = true;
+
+    let audioContext = null;
+
+    function initAudio() {
+      if (!audioContext) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {}
+      }
+    }
+
+    function playAlarm() {
+      if (!soundEnabled || !audioContext) return;
+
+      try {
+        const now = audioContext.currentTime;
+
+        // First beep
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.value = 880;
+        gain1.gain.value = 0.7;
+        osc1.connect(gain1);
+        gain1.connect(audioContext.destination);
+        osc1.start(now);
+        gain1.gain.linearRampToValueAtTime(0.001, now + 1.1);
+        setTimeout(() => osc1.stop(), 1200);
+
+        // Second higher beep
+        setTimeout(() => {
+          if (!audioContext) return;
+          const osc2 = audioContext.createOscillator();
+          const gain2 = audioContext.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.value = 1100;
+          gain2.gain.value = 0.55;
+          osc2.connect(gain2);
+          gain2.connect(audioContext.destination);
+          const now2 = audioContext.currentTime;
+          osc2.start(now2);
+          gain2.gain.linearRampToValueAtTime(0.001, now2 + 0.7);
+          setTimeout(() => osc2.stop(), 800);
+        }, 260);
+
+      } catch (e) {}
+    }
+
+    function updateDisplay(minutes, seconds) {
+      const display = document.getElementById('timer-display');
+      display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updatePhaseUI() {
+      const phaseLabel = document.getElementById('phase-label');
+      const statusText = document.getElementById('status-text');
+
+      if (isWorkPhase) {
+        phaseLabel.textContent = '作業中';
+        phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-1 phase-work';
+        statusText.textContent = '次の休憩まで';
+      } else {
+        phaseLabel.textContent = '休憩中';
+        phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-1 phase-break';
+        statusText.textContent = '次の作業まで';
+      }
+    }
+
+    function updateCycleProgress() {
+      const progress = document.getElementById('cycle-progress');
+      progress.textContent = `${currentCycle} / ${totalCycles} 回目`;
+    }
+
+    function startTimer() {
+      workMinutes = parseInt(document.getElementById('work-minutes').value) || 25;
+      breakMinutes = parseInt(document.getElementById('break-minutes').value) || 5;
+      totalCycles = parseInt(document.getElementById('cycles').value) || 4;
+      soundEnabled = document.getElementById('enable-sound').checked;
+
+      initAudio();
+
+      currentCycle = 1;
+      isWorkPhase = true;
+      currentTime = workMinutes * 60;
+
+      document.getElementById('settings-screen').classList.add('hidden');
+      document.getElementById('timer-screen').classList.remove('hidden');
+      document.getElementById('complete-screen').classList.add('hidden');
+
+      updatePhaseUI();
+      updateCycleProgress();
+      updateDisplay(Math.floor(currentTime / 60), currentTime % 60);
+
+      startCountdown();
+    }
+
+    function startCountdown() {
+      clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        if (isPaused) return;
+
+        currentTime--;
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = currentTime % 60;
+
+        updateDisplay(minutes, seconds);
+
+        if (currentTime <= 0) {
+          clearInterval(timerInterval);
+          handlePhaseComplete();
+        }
+      }, 1000);
+    }
+
+    function handlePhaseComplete() {
+      playAlarm();
+
+      if (isWorkPhase) {
+        isWorkPhase = false;
+        currentTime = breakMinutes * 60;
+      } else {
+        if (currentCycle < totalCycles) {
+          currentCycle++;
+          isWorkPhase = true;
+          currentTime = workMinutes * 60;
+        } else {
+          showCompletion();
+          return;
+        }
+      }
+
+      updatePhaseUI();
+      updateCycleProgress();
+      updateDisplay(Math.floor(currentTime / 60), currentTime % 60);
+      startCountdown();
+    }
+
+    function togglePause() {
+      const btn = document.getElementById('pause-btn');
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        btn.textContent = '再開';
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.remove('bg-zinc-800', 'hover:bg-zinc-700');
+      } else {
+        btn.textContent = '一時停止';
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-zinc-800', 'hover:bg-zinc-700');
+        startCountdown();
+      }
+    }
+
+    function skipPhase() {
+      clearInterval(timerInterval);
+      handlePhaseComplete();
+    }
+
+    function showCompletion() {
+      document.getElementById('timer-screen').classList.add('hidden');
+      document.getElementById('complete-screen').classList.remove('hidden');
+
+      if (soundEnabled) {
+        setTimeout(() => playAlarm(), 120);
+        setTimeout(() => playAlarm(), 950);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isPaused = false;
+
+      document.getElementById('timer-screen').classList.add('hidden');
+      document.getElementById('complete-screen').classList.add('hidden');
+      document.getElementById('settings-screen').classList.remove('hidden');
+    }
+
+    // Keyboard shortcuts (mainly for desktop)
+    document.addEventListener('keydown', function(e) {
+      const timerScreen = document.getElementById('timer-screen');
+      if (timerScreen.classList.contains('hidden')) return;
+
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        togglePause();
+      }
+      if (e.key.toLowerCase() === 's') {
+        skipPhase();
+      }
+      if (e.key.toLowerCase() === 'r') {
+        resetTimer();
+      }
+    });
+
+    // Initialize
+    function init() {
+      // Set nice defaults
+      document.getElementById('work-minutes').value = 25;
+      document.getElementById('break-minutes').value = 5;
+      document.getElementById('cycles').value = 4;
+
+      // Enter key to start from settings
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          const settings = document.getElementById('settings-screen');
+          if (!settings.classList.contains('hidden')) {
+            startTimer();
+          }
+        }
+      });
+
+      console.log('%c[シンプル版] カスタムタイマー 初期化完了', 'color:#666');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
