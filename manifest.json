@@ -9,14 +9,16 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192/18181b/ffffff?text=T",
+      "src": "https://via.placeholder.com/192/18181b/10b981?text=%E2%8F%B1",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512/18181b/ffffff?text=T",
+      "src": "https://via.placeholder.com/512/18181b/10b981?text=%E2%8F%B1",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
