@@ -225,7 +225,7 @@
       <!-- Status -->
       <div id="status-text" 
            class="text-center text-sm text-zinc-500 mt-6">
-        次の休憩まで
+        <!-- 現在のフェーズ終了後に来る次のフェーズを表示（JSで更新） -->
       </div>
 
       <!-- Grokの遊び心メッセージ（読みやすく） -->
@@ -272,6 +272,11 @@
     let totalPhases = 0;
 
     let audioContext = null;
+
+    // Screen Wake Lock (also for desktop: prevents sleep during focus; fallback time correction)
+    let wakeLock = null;
+    let phaseStartTime = null;
+    let phaseInitialDuration = null;
 
     // Grokらしい遊び心メッセージ集（汎用・誰でも使える版、100パターン超）
     const grokMessages = {
@@ -485,6 +490,46 @@
 
       } catch (e) {
         console.log("Sound play failed", e);
+      }
+    }
+
+    // Screen Wake Lock helpers (simple, console errors only)
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake Lock released');
+          });
+        } catch (err) {
+          console.error('Wake Lock request failed:', err);
+        }
+      } else {
+        console.log('Wake Lock not supported by this browser');
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(err => console.error(err));
+        wakeLock = null;
+      }
+    }
+
+    function correctTimeOnReturn() {
+      if (phaseStartTime && phaseInitialDuration && !isPaused) {
+        const elapsed = Math.floor((Date.now() - phaseStartTime) / 1000);
+        currentTime = Math.max(0, phaseInitialDuration - elapsed);
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = currentTime % 60;
+        updateDisplay(minutes, seconds);
+        if (currentTime <= 0) {
+          clearInterval(timerInterval);
+          handlePhaseComplete();
+        } else {
+          phaseStartTime = Date.now();
+          phaseInitialDuration = currentTime;
+        }
       }
     }
 
@@ -819,6 +864,17 @@
       isWorkPhase = first.isWork;
       currentTime = first.duration * 60;
 
+      // Wake Lock: acquire only for work/focus phases. Record start for time-correction fallback.
+      if (isWorkPhase) {
+        phaseStartTime = Date.now();
+        phaseInitialDuration = currentTime;
+        requestWakeLock();
+      } else {
+        phaseStartTime = null;
+        phaseInitialDuration = null;
+        releaseWakeLock();
+      }
+
       // Switch screens
       document.getElementById('settings-screen').classList.add('hidden');
       document.getElementById('timer-screen').classList.remove('hidden');
@@ -881,12 +937,28 @@
     function handlePhaseComplete() {
       playAlarm();
 
+      // End current phase's lock (work or not); next phase will (re)acquire if needed
+      phaseStartTime = null;
+      phaseInitialDuration = null;
+      releaseWakeLock();
+
       currentPhaseIndex++;
       if (currentPhaseIndex < totalPhases) {
         const idx = currentPhaseIndex % blockPhases.length;
         const p = blockPhases[idx];
         isWorkPhase = p.isWork;
         currentTime = p.duration * 60;
+
+        // Wake Lock management for the new phase (work only)
+        if (isWorkPhase) {
+          phaseStartTime = Date.now();
+          phaseInitialDuration = currentTime;
+          requestWakeLock();
+        } else {
+          phaseStartTime = null;
+          phaseInitialDuration = null;
+          releaseWakeLock();
+        }
       } else {
         showCompletion();
         return;
@@ -915,10 +987,16 @@
         btn.textContent = '再開';
         btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
         btn.classList.remove('bg-zinc-800', 'hover:bg-zinc-700');
+        releaseWakeLock();  // paused: allow sleep
       } else {
         btn.textContent = '一時停止';
         btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
         btn.classList.add('bg-zinc-800', 'hover:bg-zinc-700');
+        if (isWorkPhase) {
+          phaseStartTime = Date.now();
+          phaseInitialDuration = currentTime;
+          requestWakeLock();
+        }
         startCountdown();
       }
     }
@@ -936,6 +1014,10 @@
 
       document.getElementById('timer-screen').classList.add('hidden');
       document.getElementById('complete-screen').classList.remove('hidden');
+
+      phaseStartTime = null;
+      phaseInitialDuration = null;
+      releaseWakeLock();
       
       // Grok風の面白い完了メッセージ
       const completeMsg = grokMessages.complete[Math.floor(Math.random() * grokMessages.complete.length)];
@@ -964,6 +1046,10 @@
         try { window._pomoKeepAliveOsc.stop(); } catch(e) {}
         window._pomoKeepAliveOsc = null;
       }
+
+      phaseStartTime = null;
+      phaseInitialDuration = null;
+      releaseWakeLock();
 
       const display = document.getElementById('timer-display');
       if (display) display.classList.remove('low-time');
@@ -1022,9 +1108,16 @@
       });
 
       // Try to keep audio alive / resume when tab becomes visible again (for background sound)
+      // Also correct timer + wake lock re-acquire on return (for sleep prevention fallback)
       document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible' && audioContext && audioContext.state === 'suspended') {
-          audioContext.resume().catch(() => {});
+        if (document.visibilityState === 'visible') {
+          if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => {});
+          }
+          correctTimeOnReturn();
+          if (!isPaused && isWorkPhase && !wakeLock) {
+            requestWakeLock();
+          }
         }
       });
 
