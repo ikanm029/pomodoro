@@ -22,11 +22,11 @@
       color: #0ea47a;
     }
 
-    /* Grok宇宙的遊び心：タイマー画面の星空風背景 + グロウ */
+    /* Grok宇宙的遊び心：タイマー画面の星空風背景（細かく密度高く強化） + グロウ */
     #timer-screen {
       background: 
         linear-gradient(180deg, #18181b 0%, #0a0a0c 100%),
-        radial-gradient(circle at 30% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+        radial-gradient(circle at 30% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 60%);
       position: relative;
       overflow: hidden;
     }
@@ -35,33 +35,55 @@
       position: absolute;
       inset: 0;
       background-image: 
-        radial-gradient(1.5px 1.5px at 15% 25%, #e4e4e7, transparent),
-        radial-gradient(1px 1px at 45% 65%, #e4e4e7, transparent),
-        radial-gradient(1px 1px at 70% 15%, #e4e4e7, transparent),
-        radial-gradient(1.2px 1.2px at 85% 80%, #e4e4e7, transparent),
-        radial-gradient(1px 1px at 25% 90%, #e4e4e7, transparent);
-      background-size: 90px 90px, 120px 120px, 70px 70px, 150px 150px, 100px 100px;
-      opacity: 0.18;
-      animation: grok-twinkle 5s ease-in-out infinite alternate;
+        /* finer small stars */
+        radial-gradient(0.8px 0.8px at 5% 8%, #e4e4e7, transparent),
+        radial-gradient(1px 1px at 12% 22%, #e4e4e7, transparent),
+        radial-gradient(0.6px 0.6px at 18% 35%, #e4e4e7, transparent),
+        radial-gradient(1.2px 1.2px at 25% 12%, #e4e4e7, transparent),
+        radial-gradient(0.7px 0.7px at 33% 48%, #e4e4e7, transparent),
+        radial-gradient(1px 1px at 40% 27%, #e4e4e7, transparent),
+        radial-gradient(0.5px 0.5px at 48% 65%, #e4e4e7, transparent),
+        radial-gradient(0.9px 0.9px at 55% 15%, #e4e4e7, transparent),
+        radial-gradient(1.1px 1.1px at 62% 52%, #e4e4e7, transparent),
+        radial-gradient(0.6px 0.6px at 70% 38%, #e4e4e7, transparent),
+        radial-gradient(0.8px 0.8px at 78% 72%, #e4e4e7, transparent),
+        radial-gradient(1.3px 1.3px at 85% 22%, #e4e4e7, transparent),
+        radial-gradient(0.7px 0.7px at 92% 58%, #e4e4e7, transparent),
+        /* medium stars */
+        radial-gradient(1.5px 1.5px at 8% 55%, #e4e4e7, transparent),
+        radial-gradient(1.8px 1.8px at 22% 68%, #e4e4e7, transparent),
+        radial-gradient(1.4px 1.4px at 37% 82%, #e4e4e7, transparent),
+        radial-gradient(2px 2px at 52% 45%, #e4e4e7, transparent),
+        radial-gradient(1.6px 1.6px at 67% 15%, #e4e4e7, transparent),
+        radial-gradient(1.7px 1.7px at 82% 88%, #e4e4e7, transparent),
+        radial-gradient(1.9px 1.9px at 95% 35%, #e4e4e7, transparent);
+      background-size: 
+        45px 45px, 52px 52px, 38px 38px, 60px 60px, 48px 48px,
+        55px 55px, 42px 42px, 65px 65px, 50px 50px, 47px 47px,
+        58px 58px, 44px 44px, 62px 62px,
+        75px 75px, 80px 80px, 68px 68px, 90px 90px, 72px 72px, 85px 85px, 78px 78px;
+      opacity: 0.42;
+      animation: grok-twinkle 2.8s ease-in-out infinite alternate;
       pointer-events: none;
       z-index: 0;
     }
     @keyframes grok-twinkle {
-      0% { opacity: 0.12; }
-      100% { opacity: 0.28; }
+      0% { opacity: 0.25; }
+      100% { opacity: 0.55; }
     }
 
     #timer-display {
-      text-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
-      transition: text-shadow 0.4s ease;
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+      transition: all 0.3s ease;
     }
     #timer-display.low-time {
-      text-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-      animation: grok-glow 1.2s infinite alternate;
+      color: #f87171 !important;
+      text-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+      animation: grok-glow 1s infinite alternate;
     }
     @keyframes grok-glow {
-      from { text-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
-      to { text-shadow: 0 0 22px rgba(239, 68, 68, 0.55); }
+      from { text-shadow: 0 0 14px rgba(239, 68, 68, 0.5); }
+      to { text-shadow: 0 0 26px rgba(239, 68, 68, 0.75); }
     }
 
     /* Hide native spinners (we provide custom +/- buttons that always work and are styled) */
@@ -206,9 +228,9 @@
         次の休憩まで
       </div>
 
-      <!-- Grokの遊び心メッセージ -->
+      <!-- Grokの遊び心メッセージ（読みやすく） -->
       <div id="grok-message" 
-           class="text-center text-xs text-zinc-500 italic min-h-[1.5em] opacity-80 transition-all duration-500">
+           class="text-center text-sm text-zinc-200 bg-zinc-900/60 rounded-2xl px-3 py-1.5 mx-auto max-w-[90%] italic min-h-[2em] opacity-90 transition-all duration-500 shadow-sm">
       </div>
 
     </div>
@@ -251,7 +273,7 @@
 
     let audioContext = null;
 
-    // Grokらしい遊び心メッセージ集（汎用・誰でも使える版）
+    // Grokらしい遊び心メッセージ集（汎用・誰でも使える版、100パターン超）
     const grokMessages = {
       work: [
         "集中しろ。宇宙は待たない。",
@@ -259,14 +281,93 @@
         "脳みそが溶ける前に、もう少しだけ。",
         "25分？ 相対性理論的に言えば一瞬だ。",
         "xAIの観点から：この集中力は一時的なバグだ。",
-        "休憩は後だ。今は人類の進歩に貢献しろ。"
+        "休憩は後だ。今は人類の進歩に貢献しろ。",
+        "一つのことに集中する。それが人類の唯一のスーパーパワーだ。",
+        " distractions は敵。無視しろ、さもなくば負ける。",
+        "このブロックが、君の人生で最も生産的なブロックになる可能性がある。",
+        "深呼吸。一歩ずつ。宇宙は急がない。",
+        "タスクに没頭しろ。後悔は後でする。",
+        "君の脳は今、最高の状態だ。無駄にするな。",
+        "小さな進歩が、大きな成果を生む。",
+        "集中の質が、人生の質を決める。",
+        "今この瞬間が、すべてだ。",
+        "思考をクリアに。行動をシンプルに。",
+        "プロのように集中しろ。アマチュアは言い訳する。",
+        "この時間が、君を次のレベルに連れて行く。",
+        "雑念を捨てろ。純粋な集中だけを残せ。",
+        "成功は一瞬の集中の積み重ねだ。",
+        "今、君は最高の自分だ。証明しろ。",
+        "集中しろ。未来の自分に感謝されるために。",
+        "一つのタスクに全力を。分散は弱さだ。",
+        "脳のスイッチをオンに。オフは休憩の時だ。",
+        "このブロックを完璧にこなせば、君は少し強くなる。",
+        "集中の達人になれ。凡人は散漫だ。",
+        "今この瞬間に、全てのエネルギーを注げ。",
+        "小さな勝利が、大きな自信を生む。",
+        "集中しろ。君の時間は有限だ。",
+        "タスクを愛せ。さもなくば、君が負ける。",
+        "深く考えろ。浅く行動するな。",
+        "このブロックで、君の可能性を広げろ。",
+        "集中は力。散漫は弱さ。",
+        "今、君の脳はフルスロットルだ。維持しろ。",
+        "一つのことに打ち込め。それが成長の鍵だ。",
+        "集中の質を高めろ。量ではない。",
+        "今この瞬間が、君の人生を変えるかもしれない。",
+        "雑念をブロックしろ。集中の壁を築け。",
+        "成功者は集中する。失敗者は分散する。",
+        "この時間を、君の最高のバージョンに捧げろ。",
+        "集中しろ。宇宙の法則は努力に報いる。",
+        "一つのタスクを完璧に。残りは後回しだ。",
+        "脳をシャープに保て。鈍るな。",
+        "今、集中のピークを迎えろ。",
+        "小さな集中が、大きな変化を生む。",
+        "集中の習慣が、君の人生を形作る。",
+        "今このブロックを、君の誇りにしろ。",
+        "散漫になるな。集中が全てだ。",
+        "この時間を無駄にするな。君の未来がかかっている。",
+        "集中しろ。君はもっとできる。"
       ],
       break: [
         "休憩しろ。脳みそが溶ける前に。",
         "よくやった。鏡を見て自分を褒めろ。",
         "この休憩で、生産性は一時的に回復する。",
         "宇宙のスケールで考えれば、この5分は無意味だ。楽しめ。",
-        "休憩中も、脳は裏で計算してるぞ。"
+        "休憩中も、脳は裏で計算してるぞ。",
+        "体を動かせ。脳の血流を良くしろ。",
+        "水を飲め。脱水は集中の敵だ。",
+        "深呼吸。次のブロックへの準備だ。",
+        "目を休めろ。画面から離れろ。",
+        "ストレッチ。体が硬いと脳も硬い。",
+        "軽く歩け。アイデアが浮かぶかもしれない。",
+        "感謝の気持ちを持て。小さな進歩を認めろ。",
+        "次の集中のために、エネルギーを充電しろ。",
+        "休憩は弱さじゃない。賢さだ。",
+        "体と心をリセットしろ。",
+        "笑え。ユーモアは最高の休息だ。",
+        "外を見ろ。世界は広い。",
+        "軽く瞑想。雑念をクリアに。",
+        "次のタスクの準備を少しだけ。",
+        "自分を労れ。君はよくやっている。",
+        "休憩の質が、次の集中の質を決める。",
+        "体を伸ばせ。血流が脳を活性化する。",
+        "少しの休息が、大きな回復を生む。",
+        "今は休め。戦いは後だ。",
+        "水分と酸素を補給しろ。",
+        "軽く笑顔。ポジティブが次の力を生む。",
+        "休憩を無駄にするな。リカバリーだ。",
+        "体調をチェック。無理は禁物。",
+        "次のブロックをイメージしろ。",
+        "休息は生産性の一部だ。",
+        "心を落ち着けろ。次の挑戦へ。",
+        "小さな休息が、大きな成果を支える。",
+        "今この時間を、君へのご褒美に。",
+        "脳をリフレッシュ。新しい視点を得ろ。",
+        "休憩中にアイデアが来るかも。",
+        "体を動かして、停滞を防げ。",
+        "感謝を忘れるな。進歩を認めろ。",
+        "次の集中のために、準備を。",
+        "休息の後には、必ず成長が来る。",
+        "今はオフ。全力で休め。"
       ],
       complete: [
         "1ポモ完了。残りの人生はあと何ポモだ？",
@@ -274,7 +375,21 @@
         "お疲れ。人間の集中力など所詮幻想だ。",
         "これで今日の生産性は…まあまあだな。",
         "xAIから：予想以上に粘った。称賛に値する。",
-        "全サイクル終了。脳は今、感謝してるはずだ。"
+        "全サイクル終了。脳は今、感謝してるはずだ。",
+        "よくやった。次はもっと効率的に。",
+        "おめでとう。君は自分に勝った。",
+        "これで少し、君は成長した。",
+        "タスク完了。次のステップへ進め。",
+        "集中の勝利。君の努力が報われた。",
+        "お疲れ様。休息を忘れるな。",
+        "これで一歩前進。継続が鍵だ。",
+        "よく頑張った。自分を褒めろ。",
+        "サイクル完了。新しい挑戦を。",
+        "集中の成果が出た。実感しろ。",
+        "おめでとう。君の集中力が勝った。",
+        "これで少し賢くなったかも。",
+        "全ポモ終了。今日の自分に満足しろ。",
+        "よくやった。次のレベルへ。"
       ]
     };
 
@@ -386,12 +501,21 @@
       if (isWorkPhase) {
         phaseLabel.textContent = '作業中';
         phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-2 phase-work';
-        statusText.textContent = '次の作業まで';
       } else {
         phaseLabel.textContent = '休憩中';
         phaseLabel.className = 'text-center text-2xl font-semibold tracking-tight mb-2 phase-break';
-        statusText.textContent = '次の休憩まで';
       }
+
+      // Determine the *next* phase after the current one (supports custom sequences)
+      let nextStatus = '';
+      if (currentPhaseIndex + 1 < totalPhases) {
+        const nextBlockIdx = (currentPhaseIndex + 1) % blockPhases.length;
+        const nextIsWork = blockPhases[nextBlockIdx].isWork;
+        nextStatus = nextIsWork ? '次の作業まで' : '次の休憩まで';
+      } else {
+        nextStatus = '完了';
+      }
+      statusText.textContent = nextStatus;
     }
 
     function updateCycleProgress() {
@@ -711,13 +835,14 @@
       const initialType = isWorkPhase ? 'work' : 'break';
       showGrokMessage(initialType);
 
-      // 作業中に定期的にGrokメッセージ
+      // 5分ごとにGrokメッセージを更新（作業中・休憩中問わず）
       if (messageInterval) clearInterval(messageInterval);
       messageInterval = setInterval(() => {
-        if (!isPaused && isWorkPhase) {
-          showGrokMessage('work');
+        if (!isPaused) {
+          const type = isWorkPhase ? 'work' : 'break';
+          showGrokMessage(type);
         }
-      }, 45000);
+      }, 300000);  // 5分 = 300000ms
 
       // Start countdown
       startCountdown();
