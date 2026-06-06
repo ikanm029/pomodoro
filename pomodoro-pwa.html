@@ -456,12 +456,16 @@
       }
     }
 
-    function playAlarm() {
+    async function playAlarm() {
       if (!soundEnabled || !audioContext) return;
 
       // Try to resume context (helps when tab was hidden/background)
+      // Await to ensure context is active before creating/starting oscillators.
+      // Without await, on some browsers the sound may be silent if resume hasn't completed.
       if (audioContext.state === 'suspended') {
-        audioContext.resume().catch(() => {});
+        try {
+          await audioContext.resume();
+        } catch (e) {}
       }
 
       try {
